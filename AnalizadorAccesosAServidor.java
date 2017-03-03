@@ -19,7 +19,6 @@ public class AnalizadorAccesosAServidor
             Scanner sc = new Scanner(archivoALeer);
             while (sc.hasNextLine()) {
                 String lineaLeida = sc.nextLine();               
-                //
                 Acceso accesoActual = new Acceso(lineaLeida);               
                 
                 accesos.add(accesoActual);
@@ -30,6 +29,7 @@ public class AnalizadorAccesosAServidor
             System.out.println("Ocurrio algun error al leer el archivo.");
         }
     }
+    
     public int obtenerHoraMasAccesos() 
     {
         int valorADevolver = -1;
