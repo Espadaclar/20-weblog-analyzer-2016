@@ -43,13 +43,13 @@ public class TestRama0543aCommit01
     {
         AnalizadorAccesosAServidor analizad1 = new AnalizadorAccesosAServidor();
         assertEquals(-1, analizad1.obtenerHoraMasAccesos());        
-        analizad1.analizarArchivoDeLog("access.log");
+        analizad1.analizarArchivoDeLog("old.access.log");
         assertEquals(4, analizad1.obtenerHoraMasAccesos());
-        analizad1.analizarArchivoDeLog("access02.log");
+        analizad1.analizarArchivoDeLog("old.access02.log");
         assertEquals(3, analizad1.obtenerHoraMasAccesos());
-        analizad1.analizarArchivoDeLog("access03.log");
+        analizad1.analizarArchivoDeLog("old.access03.log");
         assertEquals(15, analizad1.obtenerHoraMasAccesos());
-        analizad1.analizarArchivoDeLog("access04.log");
+        analizad1.analizarArchivoDeLog("old.access04.log");
         assertEquals(20, analizad1.obtenerHoraMasAccesos());
     }
 }
