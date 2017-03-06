@@ -9,6 +9,7 @@ public class AnalizadorAccesosAServidor
     private ArrayList<Acceso> accesos;
     //nuevo ArrayList para almacenar nombres de páginas web.
     private ArrayList<String> www;
+    private String nombreDelArchivo;//------ para mostrar en pantalla el nombre del archivo
 
     public AnalizadorAccesosAServidor() 
     {
@@ -18,6 +19,7 @@ public class AnalizadorAccesosAServidor
 
     public void analizarArchivoDeLog(String archivo)
     {
+        nombreDelArchivo = archivo; //------ para mostrar en pantalla el nombre del archivo
         accesos.clear();
         File archivoALeer = new File(archivo);
         try {
@@ -67,11 +69,10 @@ public class AnalizadorAccesosAServidor
     public String paginaWebMasSolicitada() 
     {
         String paginaWebMasSolicitada = null;
-        HashMap<String, String> losNombresWeb = new HashMap<>();  //  tiena como clave y como valor el nombre de las pg, web.
+        HashMap<String, String> losNombresWeb = new HashMap<>();  //  tiene como clave y como valor el nombre de las pg, web.
         ArrayList<String> nombresPaginas = new ArrayList<>();     //  almacena el nombre de las pg, web.
         ArrayList<Integer> vecesSolicitada = new ArrayList<>();   //  almacena el nº de veces que una pg, es visitada.
-
-        //para almacenar el índice del ArrayList conMasVisitas, (en el 3º for).
+        //para almacenar el índice con mayor nº de visitas del ArrayList conMasVisitas, (en el 3º for).
         int solucion = 0;
 
         if(!accesos.isEmpty()){
@@ -105,7 +106,7 @@ public class AnalizadorAccesosAServidor
                     solucion = z;
                 }
             }
-            System.out.println("   NOMBRE DE PÁGINA WEB MÁS VISITADA.  " +nombresPaginas.get(solucion) );
+            System.out.println( nombreDelArchivo+ "   NOMBRE DE PÁGINA WEB MÁS VISITADA.  " +nombresPaginas.get(solucion) );
             paginaWebMasSolicitada = nombresPaginas.get(solucion);// valor a devolver como solución final.
         }
         else{
@@ -122,21 +123,93 @@ public class AnalizadorAccesosAServidor
         return paginaWebMasSolicitada;
     }
 
+    /**
+     * devuelve un objeto de tipo String conteniendo la dirección del cliente que ha realizado mayor número de accesos 
+     * exitosos al servidor. En caso de que se invoque este método sin haberse invocado el método analizarArchivoDeLog 
+     * el método informa por pantalla de que no tiene datos, devuelve null y no hace nada más. En caso de empate se muestra
+     * el cliente con la IP más alta.
+     */
     public String clienteConMasAccesosExitosos()
     {
-        return "";
-    }
+        String ipMasSolicitada = null;
+        HashMap<String, String> ipClientes = new HashMap<>();  //  tiene como clave y como valor las ip del cliente.
+        ArrayList<String>  ipPaginas = new ArrayList<>();     //  almacena las direcciones ip de los clientes.
+        ArrayList<Integer> accesosDelCliente = new ArrayList<>();   //  almacena el nº de veces que una ip ha visitado  pgWebs.
 
-    /////////////////////////////////////////////////
-    /**
-     * muestra los datos del ArrayList paginasWeb.  access01.log    access02.log    access03.log    access04.log
-     */
-    public void zzzMuestraPaginasWeb(){
-        if(!www.isEmpty()){
-            for(int i = 0; i < www.size(); i ++){
-                System.out.println( (i +1) + ".-  " +www.get(i).toString());
+        if(!accesos.isEmpty()){
+            //hashMap con las ip de los clientes, como claves y como valores.
+            for(int i = 0; i < accesos.size(); i ++){
+                String ip = accesos.get(i).getIp();
+                ipClientes.put(ip, ip);
             }
-        }
-    }
-}
+            //recorro el hashMap y almaceno las ip en el ArrayList ipPaginas.
+            Iterator<String> it = ipClientes.keySet().iterator();
+            while(it.hasNext()){
+                String ip = it.next();
+                ipPaginas.add(ip);
+            }
 
+            //SE ORDENA EL ARRAYLIST ipPaginas DESCENDENTEMENTE
+            //             boolean encontrado = false;
+            //             int cont = 0;
+            //             while(!encontrado){
+            //                 encontrado = true;
+            //                 while(cont < ipPaginas.size() -1 ){                
+            //                     String ip1 = ipPaginas.get(cont).replace(".", "");
+            //                     int numEntero1 = Integer.parseInt(ip1);
+            //                     String ip2 = ipPaginas.get(cont +1).replace(".", "");
+            //                     int numEntero2 = Integer.parseInt(ip2);
+            //                     if(numEntero1 < numEntero2){
+            //                         String ipMayor =  ipPaginas.get(cont +1);
+            //                         ipPaginas.set(cont +1, ip1);
+            //                         ipPaginas.set(cont, ip2);
+            //                         encontrado = false;
+            //                     }
+            //                     cont ++;
+            //                 }
+            //             }
+
+            //recorro el ArrayList ipPaginas y lo comparo con las ip de los clientes del ArrayList accesos.
+            for(int i = 0; i < ipPaginas.size(); i ++){
+                String ipW = ipPaginas.get(i);
+                int acum = 0;//--acumula el nº de veces que una ip  es repetida en el archivo.
+                for(int z = 0; z <  accesos.size(); z ++){
+                    if( ipW.equals(accesos.get(z).getIp())){
+                        acum ++;
+                    }
+                }
+                //el nº de veces que una ip accede a una pgWeb es almacenado en el ArrayList accesosDelCliente.    
+                accesosDelCliente.add(acum);
+            }
+            //para almacenar el índice con mayor nº de accesos del ArrayList accesosDelCliente, (en el 3º for).
+            int solucion = 0;
+            int con= 0;// en cada iteración aumenta de valor si el índice de accesosDelCliente tiene un valor superior.
+            // recorre el nº de accesos que tiene cada cliente
+            for(int z = 0; z <  accesosDelCliente.size(); z ++){
+                if(con <= accesosDelCliente.get(z)){
+                    con = accesosDelCliente.get(z);
+                    solucion = z;
+                }
+            }
+            System.out.println( nombreDelArchivo+ "   IP COM MÁS ENTRADAS.  " +ipPaginas.get(solucion) );
+            ipMasSolicitada = ipPaginas.get(solucion);// valor a devolver como solución final.
+        }
+        else{
+            System.out.println("------ sin datos !!!!.");
+        }
+        System.out.println("  " );
+        for(int i = 0; i < ipPaginas.size(); i ++){
+            System.out.println( (i +1)+" -> " +ipPaginas.get(i)+ " _________________ ---> " +
+                accesosDelCliente.get(i)+ " visitas." );
+        }
+
+        ipPaginas.clear();
+        accesosDelCliente.clear();
+        ipClientes.clear();
+        return ipMasSolicitada;
+    }
+
+
+    
+
+}
