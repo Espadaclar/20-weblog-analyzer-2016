@@ -6,21 +6,34 @@ import java.util.Iterator;
 
 public class AnalizadorAccesosAServidor
 {
-    private ArrayList<Acceso> accesos;
-    //nuevo ArrayList para almacenar nombres de páginas web.
-    private ArrayList<String> www;
-    private String nombreDelArchivo;//------ para mostrar en pantalla el nombre del archivo
+    private ArrayList<Acceso> accesos;// -------------- almacena los datos, las líneas de cada archivo.
+    private ArrayList<Integer> numEntradas;// --------- almacena el nº de acceso exitosos que ha tenido cada una de las ips.
+    private String nombreDelArchivo;//----------------- para mostrar en pantalla el nombre del archivo
 
+    private ArrayList<Acceso> accesosSinError;// ------ almacena los accesos que han tenido respuesta  200.
+    private HashMap <String, String> ipExitosasHm;// -- la últma cifra de la ip es la clave, la ip es el valor de la clave.
+
+    private ArrayList<String> clavesEnUnArrayList;// -- almacena las claves del HashMap descendentemente.
+    private ArrayList<String> ipEnUnArrayList;// ------ almacena el valor de las claves del HashMap descendentemente.
     public AnalizadorAccesosAServidor() 
     {
         accesos = new ArrayList<>();
-        www = new ArrayList<>();
+        numEntradas = new ArrayList<>();
+
+        accesosSinError = new ArrayList<>();
+        ipExitosasHm = new HashMap<>();
+        clavesEnUnArrayList = new ArrayList<>();
+        ipEnUnArrayList = new ArrayList<>();
     }
 
     public void analizarArchivoDeLog(String archivo)
     {
         nombreDelArchivo = archivo; //------ para mostrar en pantalla el nombre del archivo
         accesos.clear();
+        clavesEnUnArrayList.clear();
+        ipEnUnArrayList.clear();
+        accesosSinError.clear();
+
         File archivoALeer = new File(archivo);
         try {
             Scanner sc = new Scanner(archivoALeer);
@@ -28,11 +41,132 @@ public class AnalizadorAccesosAServidor
                 String lineaLeida = sc.nextLine();               
                 Acceso accesoActual = new Acceso(lineaLeida);               
                 accesos.add(accesoActual);
+                //--- 2º colección en la que todas las entrAdas han sido exitosas.
+                if(accesoActual.getRespuesta().equals("200")){
+                    accesosSinError.add(accesoActual);
+                }
             }
             sc.close();
         }
         catch (Exception e) {
             System.out.println("Ocurrio algun error al leer el archivo.");
+        }
+    }
+
+    /**
+     * devuelve un objeto de tipo String conteniendo la dirección del cliente que ha realizado mayor número de accesos 
+     * exitosos al servidor. En caso de que se invoque este método sin haberse invocado el método analizarArchivoDeLog 
+     * el método informa por pantalla de que no tiene datos, devuelve null y no hace nada más. En caso de empate se muestra
+     * el cliente con la IP más alta.
+     */
+    public String clienteConMasAccesosExitosos()
+    {
+        clavesEnUnArrayList.clear();
+        ipEnUnArrayList.clear();
+        numEntradas.clear();
+        String ipMasSolicitada = null;
+
+        if(!accesos.isEmpty()){
+            //SE CARGA EL HASHMAP CON LA ÚLTIMA CIFRA DE LAS IP COMO CLAVE Y LAS IP COMO VALOR.
+            // TODAS LAS IPS ALMACENADAS SOLO HAN TENIDO ACCESOS EXITOSOS.
+            for(int i = 0; i < accesos.size(); i ++){
+                String respuestaAccesos = accesos.get(i).getRespuesta();
+                if(respuestaAccesos.equals("200")){
+                    String[] ultimaCifraIp = accesos.get(i).getIp().split("\\.");
+                    String ultima = ultimaCifraIp[3];
+                    String ip = accesos.get(i).getIp();
+                    ipExitosasHm.put(ultima, ip);     
+                }
+            }
+
+            // SE CREAN DOS ARRAYLIST, UNO CON LOS VALORES Y EL OTRO CON LAS CLAVES, AMBOS SON DEL HASHMAP.
+            Iterator<String> it = ipExitosasHm.keySet().iterator();
+            while(it.hasNext() ){
+                String claveHashM = it.next();       
+                String valorClaves = ipExitosasHm.get(claveHashM); // --- cifraFinal es cada clave del HashMap.
+
+                ipEnUnArrayList.add(valorClaves);
+                clavesEnUnArrayList.add(claveHashM);
+            }
+
+            // ----ORDENA LOS ARRAYLIST DE LAS CLAVES Y DE LAS IPS ASCENDENTEMENTE.
+            boolean encontrado = false;
+            while(!encontrado){
+                encontrado = true;
+                for(int i = 0; i < clavesEnUnArrayList.size() -1; i ++){
+                    // pasa un String a entero.
+                    String clave1 = clavesEnUnArrayList.get(i);
+                    int clave11 = Integer.valueOf(clave1);
+                    String clave2 = clavesEnUnArrayList.get(i +1);
+                    int clave22 = Integer.valueOf(clave2);
+                    if(clave11 > clave22){
+                        encontrado = false;
+                        String claveMayor = clavesEnUnArrayList.get(i +1);
+                        clavesEnUnArrayList.set(i +1, clavesEnUnArrayList.get(i));
+                        clavesEnUnArrayList.set(i , claveMayor);
+
+                        String claveMayor2 = ipEnUnArrayList.get(i +1);
+                        ipEnUnArrayList.set(i +1, ipEnUnArrayList.get(i));
+                        ipEnUnArrayList.set(i , claveMayor2);
+                    }
+                }
+            }
+
+            // -- CONTROLA EL Nº DE VECES QUE SE REPITE UNA DE LAS IPS ORDENADAS, EN EL ARCHIVO DE LOG. 
+            // -- ESTE Nº DE VECES ES ALMACENADO EN EL ARRAYLIST numEntradas.
+            for(int i = 0; i < ipEnUnArrayList.size(); i ++){
+                String ips1 = ipEnUnArrayList.get(i);
+                int cuentaAccesos = 0;
+                for(int z = 0; z < accesosSinError.size(); z ++){
+                    String ips2 = accesosSinError.get(z).getIp();
+                    if(ips1.equals(ips2)){
+                        cuentaAccesos ++;
+                    }
+                }
+                numEntradas.add(cuentaAccesos);
+            }
+
+            // -- EL ÍNDICE DE numEntradas CON MAYOR Nº DE ENTRADAS COINCIDE CON EL ÍNDICE DE
+            // -- ipEnUnArrayList CON MAYOR ENTRADAS.
+            int auxiliar = 0;
+            int solucion = 0;
+            for(int i = 0; i < numEntradas.size(); i ++){
+                if(numEntradas.get(i) >= auxiliar){
+                    auxiliar = numEntradas.get(i);
+                    solucion = i;
+                }
+                ipMasSolicitada = ipEnUnArrayList.get(solucion);
+            }
+        }
+        else{
+            System.out.println("  Sin datos. ???");
+        }
+        return ipMasSolicitada;
+    }
+
+    //////////////////////////////////////******************************////////////////
+    public void zzzMuestra_ClavesY_Ip_ExitosasHm(){
+        Iterator<String> it = ipExitosasHm.keySet().iterator();
+        while(it.hasNext()){
+            String cifraFinal = it.next();
+            System.out.println( "Clave --> " +cifraFinal+ " valor --> " +ipExitosasHm.get(cifraFinal));
+        }
+    }
+
+    public void zzzMuestra_Claves_EnUnArrayList(){
+        for(int i = 0; i < ipEnUnArrayList.size(); i ++){
+            System.out.println( (i +1)+ " --> " +clavesEnUnArrayList.get(i).toString());
+
+        }
+    }
+
+    public void zzzMuestra_Ips_EnUnArrayList_YNum_Accesos(){
+        System.out.println(" Nombre del archivo ---> "+ nombreDelArchivo);
+        System.out.println( ""); 
+
+        for(int i = 0; i < ipEnUnArrayList.size(); i ++){
+            System.out.println( (i +1)+ " --> Nº ip. " +ipEnUnArrayList.get(i).toString()+ " nº accesos. " +numEntradas.get(i).toString());
+
         }
     }
 
@@ -129,7 +263,7 @@ public class AnalizadorAccesosAServidor
      * el método informa por pantalla de que no tiene datos, devuelve null y no hace nada más. En caso de empate se muestra
      * el cliente con la IP más alta.
      */
-    public String clienteConMasAccesosExitosos()
+    public String clienteConMasAccesosExitosos777()
     {
         String ipMasSolicitada = null;
         HashMap<String, String> ipClientes = new HashMap<>();  //  tiene como clave y como valor las ip del cliente.
@@ -149,42 +283,21 @@ public class AnalizadorAccesosAServidor
                 ipPaginas.add(ip);
             }
 
-            //SE ORDENA EL ARRAYLIST ipPaginas DESCENDENTEMENTE
-            //             boolean encontrado = false;
-            //             int cont = 0;
-            //             while(!encontrado){
-            //                 encontrado = true;
-            //                 while(cont < ipPaginas.size() -1 ){                
-            //                     String ip1 = ipPaginas.get(cont).replace(".", "");
-            //                     int numEntero1 = Integer.parseInt(ip1);
-            //                     String ip2 = ipPaginas.get(cont +1).replace(".", "");
-            //                     int numEntero2 = Integer.parseInt(ip2);
-            //                     if(numEntero1 < numEntero2){
-            //                         String ipMayor =  ipPaginas.get(cont +1);
-            //                         ipPaginas.set(cont +1, ip1);
-            //                         ipPaginas.set(cont, ip2);
-            //                         encontrado = false;
-            //                     }
-            //                     cont ++;
-            //                 }
-            //             }
-
             //recorro el ArrayList ipPaginas y lo comparo con las ip de los clientes del ArrayList accesos.
             for(int i = 0; i < ipPaginas.size(); i ++){
                 String ipW = ipPaginas.get(i);
                 int acum = 0;//--acumula el nº de veces que una ip  es repetida en el archivo.
                 for(int z = 0; z <  accesos.size(); z ++){
-                    if( ipW.equals(accesos.get(z).getIp())){
+                    if(ipW.equals(accesos.get(z).getIp())){
                         acum ++;
                     }
                 }
                 //el nº de veces que una ip accede a una pgWeb es almacenado en el ArrayList accesosDelCliente.    
                 accesosDelCliente.add(acum);
             }
-            //para almacenar el índice con mayor nº de accesos del ArrayList accesosDelCliente, (en el 3º for).
-            int solucion = 0;
-            int con= 0;// en cada iteración aumenta de valor si el índice de accesosDelCliente tiene un valor superior.
-            // recorre el nº de accesos que tiene cada cliente
+
+            int con = 0;
+            int solucion =0;
             for(int z = 0; z <  accesosDelCliente.size(); z ++){
                 if(con <= accesosDelCliente.get(z)){
                     con = accesosDelCliente.get(z);
@@ -202,14 +315,16 @@ public class AnalizadorAccesosAServidor
             System.out.println( (i +1)+" -> " +ipPaginas.get(i)+ " _________________ ---> " +
                 accesosDelCliente.get(i)+ " visitas." );
         }
-
         ipPaginas.clear();
         accesosDelCliente.clear();
         ipClientes.clear();
         return ipMasSolicitada;
     }
 
+    public void zzzMuestraAccesosSinError(){
+        for(int i = 0; i < accesosSinError.size(); i ++){
+            System.out.println( (i +1)+ " --> " +accesosSinError.get(i).toString());
+        }
 
-    
-
+    }
 }
